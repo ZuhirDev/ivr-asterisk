@@ -1,0 +1,12 @@
+services:
+  espeak:
+    build: .
+    volumes:
+      - ./tts:/app/tts
+    ports:
+      - "5000:5000"
+    networks:
+      - telephony
+networks:
+  telephony:
+    driver: bridge

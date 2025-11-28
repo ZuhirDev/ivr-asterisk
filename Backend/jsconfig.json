@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"],
+      "#utils/*": ["utils/*"],
+      "#config/*": ["config/*"],
+      "#routes/*": ["routes/*"],
+      "#ivr/*": ["modules/ivr/*"]
+    }
+  }
+}
