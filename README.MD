@@ -1,92 +1,97 @@
-# Sistema IVR Escalable para Gestión de Llamadas
+# IVR System for Call Management
 
-Este proyecto implementa un **IVR modular** utilizando **XState** para manejar máquinas de estado y **Asterisk ARI** para la gestión de llamadas telefónicas.  
+This project implements a **modular IVR** using **XState** for state machine management and **Asterisk ARI** for handling telephone calls.
 
-El IVR actual está diseñado como un sistema escalable que permite:
+The IVR is designed as a scalable system that supports:
 
-- Navegación entre menús de varios departamentos.  
-- Control de intentos limitados por menú.  
-- Lectura de DTMF con timeout.  
-- Reproducción de audio generado dinámicamente con **eSpeak**.  
-- Integración con Asterisk ARI para contestar y colgar llamadas.
-
----
-
-## 🎛 Máquina base (`withAttempts`)
-
-La **máquina base** es el núcleo del sistema de menús. Su objetivo es:
-
-- Proporcionar un control uniforme de **reintentos** para los menús.  
-- Definir la lógica de **entrada de usuario** y transición de estados.  
-- Servir como plantilla para todas las máquinas de departamento.
-
-La máquina base permite que cada máquina de departamento defina sus propios estados y acciones sin tener que replicar la lógica de reintentos o de entrada de usuario.
-
-## 🏢 Máquina principal y menús de los departamentos
-
-El IVR está compuesto por varias máquinas de estado que representan los menús de cada departamento, todas ellas **heredan la lógica de la máquina base**, lo que garantiza control de reintentos, gestión de DTMF y transición segura de estados.
-
-### Máquina principal
-
-La máquina principal es el punto de entrada del IVR. Cuando un usuario llama, se le da la bienvenida y se le presenta el menú de departamentos:
-
-- Para acceder a **Facturación**, el usuario marca `1`.  
-- Para acceder a **RRHH**, el usuario marca `2`.
-
-### Departamento RRHH
-
-En RRHH, el usuario puede elegir entre:
-
-- **Nómina**:  
-  El sistema solicita el DNI (8 dígitos) mediante DTMF. A continuación, se realiza una consulta simulada a un API público (`getUser`) y se reproduce un mensaje con el nombre del usuario y una nómina simulada.
-
-- **Contratación**:  
-  El IVR reproduce un mensaje indicando que la solicitud será atendida y finaliza la llamada.
-
-### Departamento Facturación
-
-En Facturación, el usuario puede elegir entre:
-
-- **Consultar facturas**:  
-  Simulación de consulta de facturas mediante logs.  
-
-- **Pagar facturas**:  
-  Simulación de pago de facturas mediante logs.
+- Navigation through multiple department menus.  
+- Limited attempts per menu.  
+- DTMF input with timeout handling.  
+- Dynamic text-to-speech audio using **eSpeak**.  
+- Integration with Asterisk ARI to answer and hang up calls.
 
 ---
 
-En conjunto, la **máquina principal** coordina todos los departamentos y asegura que la navegación sea fluida, segura y consistente, mientras que cada máquina de departamento mantiene su lógica independiente y reutiliza las funcionalidades de la máquina base.
+## 🎛 Base Machine (`withAttempts`)
+
+The **base machine** is the core of the IVR menu system. Its purpose is to:
+
+- Provide uniform **retry control** for all menus.  
+- Define user input handling and state transitions.  
+- Serve as a template for all department-specific machines.
+
+Each department machine can define its own states and actions without duplicating retry or input logic, ensuring consistency and maintainability.
 
 ---
 
-## 📞 Gestión de DTMF (`listenDtmf`)
+## 🏢 Main Machine and Department Menus
 
-La función `listenDtmf` permite capturar de manera controlada la entrada del usuario desde el teclado del teléfono durante la llamada. Es la forma en que el IVR sabe qué opción ha seleccionado el usuario y permite que las máquinas de estado reaccionen adecuadamente.
+The IVR consists of multiple state machines representing each department menu, all **inheriting logic from the base machine**, which ensures retry control, DTMF handling, and safe state transitions.
 
-`listenDtmf` permite definir cuántos dígitos puede marcar el usuario y cuál carácter indica que ha terminado de introducir su respuesta, como por ejemplo `#`. Además, controla el tiempo máximo de espera para la entrada, de forma que si el usuario no responde dentro del período definido (por defecto 10 segundos), la llamada se cuelga automáticamente.
+### Main Machine
+
+The main machine serves as the entry point for incoming calls. Callers are greeted and presented with the department menu:
+
+- Press `1` for **Billing**  
+- Press `2` for **HR**
+
+### HR Department
+
+Within HR, the user can choose between:
+
+- **Payroll**:  
+  The system requests the DNI (8 digits) via DTMF. A simulated API call (`getUser`) retrieves user data, and a message with the user’s name and a mock payroll is played.
+
+- **Recruitment**:  
+  The IVR plays a message indicating that the request will be handled and ends the call.
+
+### Billing Department
+
+Within Billing, the user can choose between:
+
+- **Check Invoices**:  
+  Simulated invoice lookup (logs).  
+
+- **Pay Invoices**:  
+  Simulated invoice payment (logs).
 
 ---
 
-## 🔊 Texto a voz (TTS) con eSpeak
+The **main machine** coordinates all departments, ensuring smooth, secure, and consistent navigation, while each department machine maintains its own logic and leverages base machine functionality.
 
-El IVR genera mensajes dinámicos usando **eSpeak**:
+---
 
-1. Se envía el texto al microservicio eSpeak mediante HTTP POST.  
-2. Se genera un archivo de audio (`.wav`) en el servidor.  
-3. Se reproduce el audio en la llamada mediante ARI.  
-4. Opcionalmente, se puede colgar la llamada al terminar la reproducción.
+## 📞 DTMF Handling (`listenDtmf`)
 
-**Función principal:**  
-- `playTextAudio(channel, text, hangup = false)`
+The `listenDtmf` function captures user input from the phone keypad during a call. It allows the IVR to determine which option the user selected and enables the state machines to respond appropriately.
 
-Esto permite reproducir mensajes dinámicos en cualquier estado de la máquina.
+Key features:  
 
-## 🛠 Funcionamiento general del IVR
+- Define the number of digits expected and the termination character (e.g., `#`).  
+- Set a maximum input timeout (default 10 seconds).  
+- Automatically hang up if no input is received within the timeout period.
 
-Cuando llega una llamada:
+---
 
-1. Se responde automáticamente usando `answerChannel`.  
-2. Se arranca la **máquina principal**, que representa el menú de selección de departamento.  
-3. Según la opción seleccionada por el usuario (DTMF), se invoca la máquina correspondiente del departamento.  
-4. Cada máquina de departamento puede ejecutar sub-menús, reproducir mensajes, solicitar datos o finalizar la llamada.  
-5. Al finalizar una máquina de departamento, la llamada puede volver al menú principal o colgarse automáticamente.
+## 🔊 Text-to-Speech (TTS) with eSpeak
+
+The IVR generates dynamic audio messages using **eSpeak**:
+
+1. Text is sent via HTTP POST to the eSpeak microservice.  
+2. A `.wav` audio file is generated on the server.  
+3. Audio is played in the call via ARI.  
+4. Optionally, the call can be ended after playback.
+
+This allows dynamic messages to be played at any state of the machine.
+
+---
+
+## 🛠 General IVR Workflow
+
+When a call arrives:
+
+1. The call is automatically answered using `answerChannel`.  
+2. The **main machine** is started, presenting the department selection menu.  
+3. Based on the user’s DTMF input, the corresponding department machine is invoked.  
+4. Each department machine can handle sub-menus, play messages, request input, or end the call.  
+5. After a department machine finishes, the call can return to the main menu or be terminated automatically.
