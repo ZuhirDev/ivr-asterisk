@@ -10,6 +10,12 @@ const CONFIG = {
     ARI_URL: process.env.ARI_URL,
     ARI_USER: process.env.ARI_USER,
     ARI_PASS: process.env.ARI_PASS,
+
+    LLM_PROVIDER: process.env.LLM_PROVIDER,
+    GROQ: {
+        API_KEY: process.env.GROQ_API_KEY,
+        MODEL: process.env.GROQ_MODEL,
+    },
 }
 
 export default CONFIG;

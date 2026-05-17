@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import http from 'http';
 import { initSocket } from '#utils/socketService.js';
 import { connectAri } from './ariClient.js';
+import { iniciarServidorAudio } from './udpServer.js';
 
 const app = express(); 
 const server = http.createServer(app);
@@ -19,6 +20,7 @@ app.use('/api', router);
 
 (async () => {
     try {
+        iniciarServidorAudio();
         await connectAri(dispatch);
     } catch (error) {
         console.log("Error ARI:", error)
